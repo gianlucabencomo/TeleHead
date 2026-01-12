@@ -1,0 +1,108 @@
+import asyncio
+import json
+import ssl
+from aiohttp import web
+import aiohttp_cors
+from aiortc import RTCPeerConnection, RTCSessionDescription
+from multiprocessing import shared_memory, Value, Event
+
+from camera import CameraWorker
+from track import SharedMemoryTrack
+from constants import *
+
+async def offer(request):
+    """Handles the WebRTC handshake."""
+    params = await request.json()
+    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+
+    pc = RTCPeerConnection()
+    request.app["pcs"].add(pc)
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print(f"Connection state is {pc.connectionState}")
+        if pc.connectionState == "failed":
+            await pc.close()
+            request.app["pcs"].discard(pc)
+
+    # 1. Start the camera hardware on first connection
+    request.app["stream_event"].set()
+
+    # 2. Add the Video Track from Shared Memory
+    track = SharedMemoryTrack(
+        request.app["shm_name"], 
+        request.app["latest_slot"], 
+        request.app["new_frame_event"]
+    )
+    pc.addTrack(track)
+
+    # 3. Create Answer
+    await pc.setRemoteDescription(offer)
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    return web.json_response({
+        "sdp": pc.localDescription.sdp, 
+        "type": pc.localDescription.type
+    })
+
+async def on_shutdown(app):
+    # Close all peer connections
+    coros = [pc.close() for pc in app["pcs"]]
+    await asyncio.gather(*coros)
+    app["pcs"].clear()
+
+async def index(request):
+    return web.FileResponse('./webrtc/index.html')
+
+async def javascript(request):
+    return web.FileResponse('./webrtc/client.js')
+
+def create_app(shm_name, latest_slot, stream_event, new_frame_event):
+    app = web.Application()
+    app["pcs"] = set()
+    app["shm_name"] = shm_name
+    app["latest_slot"] = latest_slot
+    app["stream_event"] = stream_event
+    app["new_frame_event"] = new_frame_event
+
+    # Enable CORS so Vuer/Browsers can connect
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True, expose_headers="*", allow_headers="*", allow_methods="*"
+        )
+    })
+    
+    app.router.add_get('/', index)
+    app.router.add_get('/client.js', javascript) # Add this
+   
+    route = app.router.add_post('/offer', offer)
+    cors.add(route)
+    
+    app.on_shutdown.append(on_shutdown)
+    return app
+
+if __name__ == "__main__":
+    import numpy as np
+    # 1. Initialize Shared Memory
+    size = np.prod(SHM_SHAPE) * np.uint8().itemsize
+    shm = shared_memory.SharedMemory(create=True, size=size)
+    
+    latest_slot = Value('i', 0)
+    stream_event = Event()
+    new_frame_event = Event()
+
+    # 2. Start Camera Worker
+    worker = CameraWorker(shm.name, latest_slot, stream_event, new_frame_event)
+    worker.start()
+
+    # 3. Launch Server
+    app = create_app(shm.name, latest_slot, stream_event, new_frame_event)
+    
+    print("--- Signaling Server Running on http://0.0.0.0:8080 ---")
+    try:
+        web.run_app(app, host="0.0.0.0", port=8080)
+    finally:
+        worker.terminate()
+        shm.close()
+        shm.unlink()

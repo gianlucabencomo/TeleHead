@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFFERENCE TELEOP</title>
+    <style>
+        :root {
+            --accent: #007bff;
+            --accent-hover: #0056b3;
+            --stop: #dc3545;
+            --stop-hover: #a71d2a;
+            --bg: #0a0a0a;
+            --ui-bg: rgba(15, 15, 15, 0.95);
+            --border: #333;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: var(--bg);
+            color: #eee;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        .viewport {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        .video-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: var(--ui-bg);
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--border);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        /* Auto-hide controls when not hovering over video */
+        .video-wrapper:not(:hover) .controls-bar {
+            transform: translateY(100%);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 30px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        button:hover { background: var(--accent-hover); }
+        button:active { transform: scale(0.98); }
+
+        button.stop-mode { background: var(--stop); }
+        button.stop-mode:hover { background: var(--stop-hover); }
+
+        #status-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .indicator {
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border: 1px solid #444;
+        }
+
+        .live .indicator {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+            border-color: #00ff41;
+        }
+
+        #status {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport">
+	<header>
+    		<h1>EFFERENCE TELEOP</h1>
+    		<div style="display: flex; gap: 20px;">
+        	<div id="fps-counter" style="font-size: 0.7rem; color: #00ff41; font-weight: bold;">FPS: --</div>
+        	<div id="connection-info" style="font-size: 0.7rem; color: #555;">NO_PEER_CONNECTED</div>
+    		</div>
+	</header>
+
+        <div class="video-wrapper">
+            <video id="videoPlayer" autoplay playsinline></video>
+            
+            <div class="controls-bar">
+                <div id="status-container">
+                    <div class="indicator"></div>
+                    <span id="status">OFFLINE</span>
+                </div>
+                <button id="streamBtn">Connect Stream</button>
+            </div>
+        </div>
+    </div>
+    <script src="client.js"></script>
+</body>
+</html>
