@@ -32,22 +32,27 @@ async function negotiate() {
 function start() {
     pc = new RTCPeerConnection({ sdpSemantics: 'unified-plan' });
 
-    // Add two recvonly transceivers for left/right video
-    pc.addTransceiver('video', { direction: 'recvonly' }); // left
-    pc.addTransceiver('video', { direction: 'recvonly' }); // right
+    // Two recvonly transceivers
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('video', { direction: 'recvonly' });
 
     pc.ontrack = (event) => {
         if (!event.streams || !event.streams[0]) return;
 
-        // Simple assignment: first track -> left, second -> right
-        const videoEls = [document.getElementById('left_video'), document.getElementById('right_video')];
+        const leftVideo = document.getElementById('left_video');
+        const rightVideo = document.getElementById('right_video');
 
-        if (!videoEls[0].srcObject) {
-            videoEls[0].srcObject = event.streams[0];
-        } else if (!videoEls[1].srcObject) {
-            videoEls[1].srcObject = event.streams[0];
+        if (!leftVideo.srcObject) {
+            leftVideo.srcObject = event.streams[0];
+            console.log("Assigned first track to left");
+        } else if (!rightVideo.srcObject) {
+            rightVideo.srcObject = event.streams[0];
+            console.log("Assigned second track to right");
         }
     };
+
+    pc.oniceconnectionstatechange = () => console.log("ICE state:", pc.iceConnectionState);
+    pc.onconnectionstatechange = () => console.log("Connection state:", pc.connectionState);
 
     document.getElementById('start').style.display = 'none';
     document.getElementById('stop').style.display = 'inline-block';
