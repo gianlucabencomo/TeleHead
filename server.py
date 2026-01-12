@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 import ssl
@@ -5,6 +6,8 @@ from aiohttp import web
 import aiohttp_cors
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from multiprocessing import shared_memory, Value, Event
+import numpy as np
+import ssl
 
 from camera import CameraWorker
 from track import SharedMemoryTrack
@@ -83,8 +86,10 @@ def create_app(shm_name, latest_slot, stream_event, new_frame_event):
     return app
 
 if __name__ == "__main__":
-    import numpy as np
-    # 1. Initialize Shared Memory
+    parser = argparse.ArgumentParser(description="Server script.")
+    parser.add_argument("--local", action="store_true", help="Run in local SSL mode")
+    args = parser.parse_args()
+
     size = np.prod(SHM_SHAPE) * np.uint8().itemsize
     shm = shared_memory.SharedMemory(create=True, size=size)
     
@@ -92,16 +97,23 @@ if __name__ == "__main__":
     stream_event = Event()
     new_frame_event = Event()
 
-    # 2. Start Camera Worker
     worker = CameraWorker(shm.name, latest_slot, stream_event, new_frame_event)
     worker.start()
 
-    # 3. Launch Server
     app = create_app(shm.name, latest_slot, stream_event, new_frame_event)
-    
-    print("--- Signaling Server Running on http://0.0.0.0:8080 ---")
+
     try:
-        web.run_app(app, host="0.0.0.0", port=8080)
+        if args.local:
+            # LOCAL MODE: Needs SSL and a specific IP/Host
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain("cert.pem", "key.pem")
+            web.run_app(app, host="0.0.0.0", port=8080, ssl_context=ssl_context)
+            print("--- Signaling Server Running on http://0.0.0.0:8080 ---")
+        else:
+            # NGROK MODE: Standard HTTP on localhost
+            web.run_app(app, host="127.0.0.1", port=8080) 
+            print("--- Signaling Server Running on http://127.0.0.1:8080 ---")
+
     finally:
         worker.terminate()
         shm.close()
