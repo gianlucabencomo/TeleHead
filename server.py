@@ -9,7 +9,13 @@ from multiprocessing import shared_memory, Value, Event
 import numpy as np
 import ssl
 
-from camera.zed import ZedWorker
+try:
+    import pyzed.sl as sl
+    from camera.zed import ZedWorker as CameraWorker
+except ImportError:
+    from camera.test import RandomWorker as CameraWorker
+    print("Warning: ZED SDK (pyzed) not found. Falling back to RandomWorker (Simulation).")
+
 from track import SharedMemoryTrack
 from constants import *
 
@@ -34,6 +40,7 @@ async def offer(request):
     # 2. Add the Video Track from Shared Memory
     track = SharedMemoryTrack(
         request.app["shm_name"], 
+        SHM_SHAPE,
         request.app["latest_slot"], 
         request.app["new_frame_event"]
     )
@@ -97,7 +104,7 @@ if __name__ == "__main__":
     stream_event = Event()
     new_frame_event = Event()
 
-    worker = CameraWorker(shm.name, latest_slot, stream_event, new_frame_event)
+    worker = CameraWorker(shm.name, SHM_SHAPE, latest_slot, stream_event, new_frame_event)
     worker.start()
 
     app = create_app(shm.name, latest_slot, stream_event, new_frame_event)
