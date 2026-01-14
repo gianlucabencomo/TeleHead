@@ -20,7 +20,7 @@ class RandomWorker(BaseWorker):
 
     def capture_frame(self):
         time.sleep(1. / 120.)
-        sample = np.random.randint(0, 256, size=(2, HEIGHT, WIDTH, 3), dtype=np.uint8)
+        sample = np.random.randint(0, 256, size=(2, int(HEIGHT * 1.5), WIDTH, 1), dtype=np.uint8)
         left, right = sample[0], sample[1]
         return left, right
 
@@ -52,7 +52,7 @@ def test():
                 new_frame_event.clear()
                 read_slot = latest_slot.value
                 frame = shared_array[read_slot]
-                display_frame = frame[:, :, ::-1]
+                display_frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
                 cv2.imshow("Random Shared Memory Test", display_frame)           
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

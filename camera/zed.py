@@ -33,8 +33,8 @@ class ZedWorker(BaseWorker):
             self.zed.retrieve_image(self.right_mat, sl.VIEW.RIGHT)
             
             # Convert
-            left = cv2.cvtColor(self.left_mat.get_data(), cv2.COLOR_BGRA2RGB)
-            right = cv2.cvtColor(self.right_mat.get_data(), cv2.COLOR_BGRA2RGB)
+            left = cv2.cvtColor(self.left_mat.get_data(), cv2.COLOR_BGRA2YUV_I420)
+            right = cv2.cvtColor(self.right_mat.get_data(), cv2.COLOR_BGRA2YUV_I420)
             return left, right
         return None
 
@@ -67,7 +67,7 @@ def test():
                 new_frame_event.clear()
                 read_slot = latest_slot.value
                 frame = shared_array[read_slot]
-                display_frame = frame[:, :, ::-1]
+                display_frame = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
                 cv2.imshow("ZED Shared Memory Test", display_frame)           
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
