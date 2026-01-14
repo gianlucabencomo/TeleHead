@@ -9,7 +9,7 @@ from multiprocessing import shared_memory, Value, Event
 import numpy as np
 import ssl
 
-from camera import CameraWorker
+from camera.zed import ZedWorker
 from track import SharedMemoryTrack
 from constants import *
 
