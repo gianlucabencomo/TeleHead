@@ -25,9 +25,9 @@ class SharedMemoryTrack(MediaStreamTrack):
             self.start_time = time.time()
 
         read_slot = self.latest_slot.value
-        
+       
         frame = VideoFrame.from_ndarray(self.shared_array[read_slot], format="yuv420p")
-        
+
         pts = int((time.time() - self.start_time) * 90000)
         frame.pts = pts
         frame.time_base = 90000

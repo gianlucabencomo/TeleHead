@@ -1,14 +1,16 @@
 import pyzed.sl as sl
 import cv2
-from .base import BaseWorker
 
 import sys
 from pathlib import Path
 
-root_path = Path(__file__).resolve(strict=True).parent.parent # repo root
+camera_path = Path(__file__).resolve(strict=True).parent # camera dir
+root_path = camera_path.parent # repo dir
+sys.path.append(str(camera_path))
 sys.path.append(str(root_path)) # add to path
 
-# import constants safely
+# import safely
+from base import BaseWorker
 from constants import *
 
 class ZedWorker(BaseWorker):
@@ -23,19 +25,16 @@ class ZedWorker(BaseWorker):
         if e != sl.ERROR_CODE.SUCCESS:
             raise ValueError(f"ZED SDK raise the following error while attempting to open the camera: {e}")
         
-        self.left_mat = sl.Mat()
-        self.right_mat = sl.Mat()
+        self.sbs = sl.Mat()
         self.runtime = sl.RuntimeParameters()
 
     def capture_frame(self):
         if self.zed.grab(self.runtime) == sl.ERROR_CODE.SUCCESS:
-            self.zed.retrieve_image(self.left_mat, sl.VIEW.LEFT)
-            self.zed.retrieve_image(self.right_mat, sl.VIEW.RIGHT)
+            self.zed.retrieve_image(self.sbs, sl.VIEW.SIDE_BY_SIDE)
             
             # Convert
-            left = cv2.cvtColor(self.left_mat.get_data(), cv2.COLOR_BGRA2YUV_I420)
-            right = cv2.cvtColor(self.right_mat.get_data(), cv2.COLOR_BGRA2YUV_I420)
-            return left, right
+            sbs = cv2.cvtColor(self.sbs.get_data(), cv2.COLOR_BGRA2YUV_I420)
+            return sbs
         return None
 
     def on_stop(self):

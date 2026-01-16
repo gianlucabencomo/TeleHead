@@ -51,20 +51,12 @@ class BaseWorker(Process, ABC):
         self.start_time = time.time()
         try:
             while True:
-                frames = self.capture_frame()
-                if frames is None:
+                frame = self.capture_frame()
+                if frame is None:
                     continue
                 
-                left, right = frames
+                shared_array[write_slot] = frame
                 
-                # Write to SHM (Assuming Stereo Split)
-                # Note: WIDTH is half of SHM_SHAPE[2] if SBS
-                h, total_w, _ = shared_array.shape[1:]
-                half_w = total_w // 2
-                
-                shared_array[write_slot, :, :half_w, :] = left
-                shared_array[write_slot, :, half_w:, :] = right
-
                 with self.latest_slot.get_lock():
                     self.latest_slot.value = write_slot
                 self.new_frame_event.set()

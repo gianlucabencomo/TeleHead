@@ -20,9 +20,8 @@ class RandomWorker(BaseWorker):
 
     def capture_frame(self):
         time.sleep(1. / 120.)
-        sample = np.random.randint(0, 256, size=(2, int(HEIGHT * 1.5), WIDTH, 1), dtype=np.uint8)
-        left, right = sample[0], sample[1]
-        return left, right
+        sbs = np.random.randint(0, 256, size=(int(HEIGHT * 1.5), WIDTH * 2,), dtype=np.uint8)
+        return sbs
 
     def on_stop(self):
         pass

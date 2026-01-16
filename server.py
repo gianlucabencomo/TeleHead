@@ -19,6 +19,16 @@ except ImportError:
 from track import SharedMemoryTrack
 from constants import *
 
+from aiortc.rtcrtpsender import RTCRtpSender
+
+def force_codec(pc, sender, forced_codec):
+    kind = forced_codec.split("/")[0]
+    codecs = RTCRtpSender.getCapabilities(kind).codecs
+    transceiver = next(t for t in pc.getTransceivers() if t.sender == sender)
+    transceiver.setCodecPreferences(
+        [codec for codec in codecs if codec.mimeType == forced_codec]
+    )
+
 async def offer(request):
     """Handles the WebRTC handshake."""
     params = await request.json()
@@ -44,7 +54,9 @@ async def offer(request):
         request.app["latest_slot"], 
         request.app["new_frame_event"]
     )
-    pc.addTrack(track)
+    video_sender = pc.addTrack(track)
+
+    force_codec(pc, video_sender, "video/H264")
 
     # 3. Create Answer
     await pc.setRemoteDescription(offer)

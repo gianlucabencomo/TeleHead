@@ -93,7 +93,7 @@ function startStatsMonitor() {
                 lastStatsTime = now;
             }
         });
-    }, 1000); // Update every second
+    }, 3000); // Update every three seconds
 }
 
 function stopStream() {
