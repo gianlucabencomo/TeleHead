@@ -1,0 +1,10 @@
+version: "2"
+authtoken: 38KTlrAXDACATqNt2zvFWH5T9Ew_4Ufedxswp2oXnLuAKVktV
+tunnels:
+  vuer:
+    proto: http
+    addr: 8000
+    hostname: efference.ngrok.app
+  zed:
+    proto: http
+    addr: 8080
