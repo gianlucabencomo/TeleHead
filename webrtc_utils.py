@@ -27,7 +27,8 @@ def register_h265():
     
     def get_encoder(codec):
         if codec.mimeType == "video/custom_h265":
-            return H265Encoder(crf=23)
+            print(" [Factory] Creating H265Encoder with CRF 18")
+            return H265Encoder(crf=18)
         return _orig_get_encoder(codec)
     
     def get_decoder(codec):
