@@ -33,10 +33,7 @@ async def run_data_channel_loop(channel, app):
             "preset": "ultrafast",
             "tune": "zerolatency",
             "profile": "baseline",
-            "crf": "18",
-            "maxrate": "4M",
-            "bufsize": "8M",
-            "x264-params": "keyint=30:min-keyint=30:scenecut=0"
+            "x264-params": "keyint=30:min-keyint=30:scenecut=0:bitrate=4000:vbv-maxrate=4000:vbv-bufsize=4000:nal-hrd=cbr"
         }
         
         codec.open()
@@ -71,27 +68,43 @@ async def run_data_channel_loop(channel, app):
             frame.planes[1].update(flat_data[y_size : y_size + uv_size])
             frame.planes[2].update(flat_data[y_size + uv_size : y_size + 2 * uv_size])
             
-            frame.pts = frame_count
+            
+            # Encode
             packets = codec.encode(frame)
             
             for packet in packets:
                 data = bytes(packet)
+                if len(data) == 0: continue
+                
                 is_key = 1 if packet.is_keyframe else 0
-                ts = frame_count * (1_000_000 // 60)
+                ts = int(frame_count * (1_000_000 / 60))
+                
+                # Check for large frames blocking the channel
+                if len(data) > 500_000: # 500KB warning
+                    print(f"  Frame {frame_count} is huge! {len(data)} bytes. Keyframe: {is_key}")
                 
                 header = struct.pack(">BQ", is_key, ts)
                 message = header + data
                 
-                while channel.bufferedAmount > 1_000_000:
-                    await asyncio.sleep(0.01)
+                max_buffer_wait = 0
+                while channel.bufferedAmount > 4_000_000: # Increase buffer limit to 4MB
+                    await asyncio.sleep(0.005) # Check more frequently (5ms)
+                    max_buffer_wait += 1
+                    if max_buffer_wait > 200: # 1s timeout
+                         print("  Buffer FULL, dropping frame")
+                         break
                 
-                channel.send(message)
-                
-                if frame_count % 60 == 0:
-                    current_time = time.time()
-                    fps = 60 / (current_time - last_frame_time) if frame_count > 0 else 0
-                    print(f"  Frame {frame_count}: size={len(data)}B, fps={fps:.1f}")
-                    last_frame_time = current_time
+                if max_buffer_wait <= 200:
+                    try:
+                        channel.send(message)
+                        
+                        if frame_count % 60 == 0:
+                            current_time = time.time()
+                            fps = 60 / (current_time - last_frame_time) if frame_count > 0 else 0
+                            print(f"  Frame {frame_count}: size={len(data)}B, fps={fps:.1f}, buf={channel.bufferedAmount}")
+                            last_frame_time = current_time
+                    except Exception as e:
+                        print(f"  Send failed: {e}")
             
             frame_count += 1
             await asyncio.sleep(0)
