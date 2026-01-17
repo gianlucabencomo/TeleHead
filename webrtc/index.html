@@ -141,17 +141,27 @@
 	</header>
 
         <div class="video-wrapper">
-            <video id="videoPlayer" autoplay playsinline></video>
+            <!-- Canvas for WebCodecs rendering (DataChannel mode) -->
+            <canvas id="videoCanvas" width="2560" height="720" style="display: none; width: 100%; height: 100%; object-fit: contain; background: #000;"></canvas>
+            <!-- Video element for standard WebRTC track mode -->
+            <video id="videoPlayer" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
             
             <div class="controls-bar">
                 <div id="status-container">
                     <div class="indicator"></div>
                     <span id="status">OFFLINE</span>
                 </div>
+                <select id="codecSelect" style="background: rgba(0,0,0,0.5); color: #eee; border: 1px solid #333; padding: 5px; margin-right: 10px;">
+                    <option value="video/custom_h265">Custom H.265</option>
+                    <option value="video/H264">Standard H.264</option>
+                    <option value="video/H265">Standard H.265</option>
+                    <option value="video/VP8">VP8</option>
+                    <option value="datachannel">WebCodecs (H.264 over DC)</option>
+                </select>
                 <button id="streamBtn">Connect Stream</button>
             </div>
         </div>
     </div>
-    <script src="client.js"></script>
+    <script src="client.js?v=4"></script>
 </body>
 </html>
