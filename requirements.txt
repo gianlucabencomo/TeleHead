@@ -6,3 +6,5 @@ aiohttp-cors>=0.7
 
 aiortc>=1.6
 av>=12.0
+
+vuer>=0.0.31
